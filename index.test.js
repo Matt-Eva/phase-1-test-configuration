@@ -32,6 +32,10 @@ describe('query DOM', () =>{
       console.log(styles)
       expect(styles.color).toBe('blue')
     })
+    it('can find head', () =>{
+      const link = document.head.querySelector("link[rel='stylesheet'][href='./styles.css']")
+      expect(link).not.toBe(null)
+    })
   })
 
 describe('getData', () => {

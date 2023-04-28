@@ -92,3 +92,77 @@ Note: From the looks of it, the `it` function is just an alias for the `test` fu
 ### Testing HTML Files
 
 Let's say we want to write some tests where students are writing HTML in an HTML file.
+
+First, we're going to need to import the `fs` module and the `path` module
+
+```
+import fs from "fs"
+import path from "path"
+```
+
+Then, we'll need to use these two modules to give us access to the html in our HTML file as a string:
+
+```
+const html = fs.readFileSync(path.resolve(__dirname, './index.html'), 'utf-8')
+```
+
+From here, we need to give the virtual DOM created by JSDOM that jest is using the content of this html:
+
+```
+document.documentElement.innerHTML = html
+```
+
+Now we can test HTML:
+
+```
+describe('query DOM', () =>{
+    it('has a button', () =>{
+        const button = document.querySelector('button')
+        expect(button).not.toBe(null)
+    })
+)
+```
+
+### Testing CSS
+
+If we want to test css that is linked to our HTML file, JSDOM will not load it even if it's add to the `<head>` of our HTML file.
+
+Instead, we have to load the css separately:
+
+```
+const css = fs.readFileSync(path.resolve(__dirname, './styles.css'), 'utf-8')
+```
+
+Then we need to update our virtual DOM:
+
+```
+const style = document.createElement('style')
+style.innerHTML = css
+document.head.append(style)
+```
+
+We can get the styles of a specific dom element by using the `window.getComputedStyle` method:
+
+```
+const button = document.getElementById("click-me")
+const styles = window.getComputedStyle(button)
+```
+
+This will give us all the styles for that element. Individual styles can be accessed using `.` notation: `styles.color`
+
+And now we can test CSS:
+
+```
+it('can query CSS', () =>{
+   const button = document.getElementById("click-me")
+   const styles = window.getComputedStyle(button)
+   expect(styles.color).toBe('blue')
+   })
+```
+
+**Note**: If we want to test whether a student has added a css link to their html file, we can query select for the following: `document.head.querySelector("link[rel='stylesheet'][href='./styles.css']")`.
+
+### Testing DOM Manipulation
+
+
+

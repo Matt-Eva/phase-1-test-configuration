@@ -1,11 +1,19 @@
 import fs from 'fs'
 import path from 'path'
+import { JSDOM } from 'jsdom'
 import { getData, createEventListener } from './index.js'
 
-const html = fs.readFileSync(path.resolve(__dirname, './index.html'), 'utf8')
+console.log(JSDOM)
+
+
+
+const html = fs.readFileSync(path.resolve(__dirname, './index.html'), 'utf-8')
+
+const dom = new JSDOM(html)
 
 describe('query DOM', () =>{
     document.body.innerHTML = html
+    document.head.innerHTML = html
     it('has a button', () =>{
         const button = document.querySelector('button')
         expect(button).not.toBe(null)
@@ -17,6 +25,11 @@ describe('query DOM', () =>{
         const h2 = document.querySelector('h2')
         console.log(h2)
         expect(h2).not.toBe(null)
+    })
+    it('can query CSS', () =>{
+      const button = document.getElementById("click-me")
+      console.log(button)
+      expect(button.style.color).toBe("blue")
     })
   })
 

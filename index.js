@@ -19,7 +19,6 @@ function getData() {
         document.body.append(h2)
     })
 }
-createEventListener()
 
  export {
     getData,

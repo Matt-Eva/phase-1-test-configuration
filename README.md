@@ -2,9 +2,11 @@
 
 This is an overview of how to set up tests for phase 1 labs and practice challenges using `jest`and `jest-environment-jsdom`.
 
+**Note:** This approach works, but it may not be the optimal or best-practices way to handle DOM testing using Jest. It may be better to use Testing-Library in addition to Jest. But, this approach will at least allow us to build out tests for the types of labs and challenges we'll see in phase one pretty quickly and easily.
+
 ## Installation
 
-Note: You do not need to install `json-server` unless the lab or practice challenge requires students to make fetch requests. `json-server` will not be used for testing - it will just be used by students when they run their code.
+**Note:** You do not need to install `json-server` unless the lab or practice challenge requires students to make fetch requests. `json-server` will not be used for testing - it will just be used by students when they run their code.
 
 To install Jest and other necessary tools:
 
@@ -79,7 +81,7 @@ And import it into our test file:
 import { myVar } from "./my-js.js"
 
 describe("It can test plain JS", () =>{
-   test("Testing a variable",() =>{
+   it("tests a variable",() =>{
       expect(myVar).toBe("Hello, world!")
    })
 })
@@ -202,7 +204,7 @@ describe("it can test DOM manipulation", () =>{
 
 **Note**: We can get scripts linked to our HTML file to run if we configure JSDOM to run scripts "dangerously", but this should only be used where scripts are coming from trusted sources, as it could expose your entire Node environment to maliciously injected scripts.
 
-## Testing Event Listeners
+### Testing Event Listeners
 
 Testing Event Listeners is similar to testing DOM events - we just need to fire the type of event we want the student to create, then check to see if the behavior we wanted to test for occured:
 
@@ -235,4 +237,139 @@ describe("can test event listeners", () =>{
 
 ## Testing Fetch
 
+In order to test fetch calls, we'll be availing ourselves of Jest's mock function ability.
 
+**Note:** For POST, PATCH, and DELETE requests, we also won't be able to process whether or not the requests the students write are actually changing the database. We can only check their configuration objects and whether or not the fetch call was successfully made.
+
+I'm most shaky on this solution as an effective way to test. I don't think it would work for a production environment, but it should at least stop gap for our needs.
+
+In order to test fetch, we'll need to use a Jest mock function and modify the global.fetch function to use this function instead.
+
+Ex:
+```
+global.fetch = jest.fn(() =>
+   Promise.resolve({
+      json: () => Promise.resolve({ data: 'mock data' }),
+   })
+);
+```
+
+We can set this up in a beforeEach function, then run an afterEach to clear this out:
+
+```
+beforeEach(() => {
+   global.fetch = jest.fn(() =>
+      Promise.resolve({
+         json: () => Promise.resolve({ data: 'mock data' }),
+      })
+   );
+});
+  
+afterEach(() => {
+   global.fetch.mockClear();
+   delete global.fetch;
+});
+```
+
+As with some of our current labs, we'll want students to write calls within functions and then return the fetch calls themselves from the functions:
+
+index.js:
+```
+function fetchData(){
+   return fetch("http://localhost:3000/data")
+      .then(r => r.json())
+      .then(data => {
+         // do something with data
+         return data
+      })
+      .catch(error =>{
+         console.error(error)
+      })
+}
+
+export { fetchData }
+```
+
+We can then test to see whether or not the exported function calls the fetch request, whether or not it uses the correct url, and whether or not it fetches data. We can also test to see if it has successfuly error handling logic.
+
+Note that to see if it successfully fetches data, we have to have our second then statement return the data in question.
+
+index.test.js:
+```
+describe('it can test fetch requests', () => {
+    beforeEach(() => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          json: () => Promise.resolve({ data: 'mock data' }),
+        })
+      );
+    });
+  
+    afterEach(() => {
+      global.fetch.mockClear();
+      delete global.fetch;
+    });
+  
+    it('should call the API', async () => {
+      await getData();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledWith('http://localhost:3000/data');
+    });
+  
+    it('should return data from the API', async () => {
+      const data = await getData();
+      expect(data).toEqual({ data: 'mock data' });
+    });
+  
+    it('should log an error if the API call fails', async () => {
+      global.fetch.mockImplementationOnce(() => Promise.reject('API is down'));
+      console.error = jest.fn();
+  
+      await getData();
+      expect(console.error).toHaveBeenCalledWith('API is down');
+    });
+  });
+```
+
+We could also test to see if it manipulates the DOM correctly by adding in DOM querying logic:
+
+
+index.js:
+```
+ function getData(){
+    return fetch("http://localhost:3000/data")
+       .then(r => r.json())
+       .then(data => {
+          // do something with data
+          console.log(data.data)
+          const p = document.createElement('p')
+          p.textContent= data.data
+          document.body.append(p)
+          return data
+       })
+       .catch(error =>{
+        console.error(error)
+     })
+ }
+```
+
+index.test.js:
+```
+it("should update the DOM", async () =>{
+        await getData()
+        const p = document.querySelector('p')
+        expect(p).not.toBe(null)
+        expect(p.textContent).toBe("mock data")
+})
+```
+
+### POST, PATCH, and DELETE
+
+Testing POST, PATCH, and DELETE requests will simply involve testing to see if the students sent up the appropriate configuration object:
+
+index.test.js:
+```
+expect(global.fetch).toHaveBeenCalledWith('url', configObj)
+```
+
+Where `configObj` is any valid config obj for a different type of request.

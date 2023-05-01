@@ -164,5 +164,75 @@ it('can query CSS', () =>{
 
 ### Testing DOM Manipulation
 
+In order to test whether a student is manipulating the DOM correctly,
+we'll need to have them write DOM manipulation inside of functions. This is the current approach that our tests already take.
+
+These functions will also need to be exported from the file in which they are declared.
+
+From there, we simply need to call the function within our test file, then test to see if the DOM has been updated:
+
+index.js:
+```
+function addHeader(){
+  const h1 = document.createElement('h1')
+  h1.textContent = "Welcome!"
+  document.body.append(h1)
+}
+
+export {addHeader}
+```
+
+index.test.js:
+```
+import { addHeader } from "./index.js" 
+// remember, we can do this because we used babel to support ECMA modules^^^
+
+describe("it can test DOM manipulation", () =>{
+   addHeader()
+   it("adds an h1 to the DOM", () =>{
+      const noHeader = document.querySelector('h1')
+      expect(noHeader).toBe(null)
+      addHeader()
+      const h1 = document.querySelector('h1')
+      expect(h1).not.toBe(null)
+      expect(h1.textContent).toBe("Welcome!")
+   })
+})
+```
+
+**Note**: We can get scripts linked to our HTML file to run if we configure JSDOM to run scripts "dangerously", but this should only be used where scripts are coming from trusted sources, as it could expose your entire Node environment to maliciously injected scripts.
+
+## Testing Event Listeners
+
+Testing Event Listeners is similar to testing DOM events - we just need to fire the type of event we want the student to create, then check to see if the behavior we wanted to test for occured:
+
+index.js:
+```
+function createEventListener() {
+   const button = document.getElementById("click-me")
+   button.addEventListener("click", () =>{
+      console.log("I was clicked!")
+   })
+}
+
+export { createEventListener }
+```
+
+index.test.js
+```
+import { createEventListener } "./index.js"
+
+describe("can test event listeners", () =>{
+   it("runs a console.log when clicked", () =>{
+      const logSpy = jest.spyOn(global.console, "log")
+      createEventListener()
+      const button = document.getElementById("click-me")
+      button.click()
+      expect(logSpy).toHaveBeenCalledWith("I was clicked!")
+   })
+})
+```
+
+## Testing Fetch
 
 

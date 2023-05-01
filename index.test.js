@@ -21,6 +21,7 @@ describe('query DOM', () =>{
     it('can call events', () =>{
         createEventListener()
         const button = document.getElementById("click-me")
+        console.log(button.getEventListeners('click'))
         button.click()
         const h2 = document.querySelector('h2')
         console.log(h2)
